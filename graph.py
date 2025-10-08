@@ -137,7 +137,7 @@ class Graph:
         Get the degree of a vertex.
 
         For undirected graphs: total number of edges connected to vertex
-        For directed graphs: out-degree (number of outgoing edges)
+        For directed graphs: out-degree (sum of outgoing edge multiplicities)
 
         Time complexity: O(V)
 
@@ -149,14 +149,20 @@ class Graph:
         """
         self._validate_vertex(vertex)
 
-        # Count non-zero entries in the row (outgoing edges)
-        degree = np.count_nonzero(self.adjacency_matrix[vertex])
+        # For directed graphs with multi-edges, sum the row values
+        # For undirected graphs, count non-zero entries (still binary)
+        if self.directed:
+            degree = np.sum(self.adjacency_matrix[vertex])
+        else:
+            degree = np.count_nonzero(self.adjacency_matrix[vertex])
 
         return degree
 
     def get_in_degree(self, vertex: int) -> int:
         """
         Get the in-degree of a vertex (for directed graphs).
+
+        For directed graphs with multi-edges, sums the edge multiplicities.
 
         Time complexity: O(V)
 
@@ -168,8 +174,11 @@ class Graph:
         """
         self._validate_vertex(vertex)
 
-        # Count non-zero entries in the column (incoming edges)
-        in_degree = np.count_nonzero(self.adjacency_matrix[:, vertex])
+        # For directed graphs with multi-edges, sum the column values
+        if self.directed:
+            in_degree = np.sum(self.adjacency_matrix[:, vertex])
+        else:
+            in_degree = np.count_nonzero(self.adjacency_matrix[:, vertex])
 
         return in_degree
 
@@ -261,14 +270,16 @@ class Graph:
         """
         Get the total number of edges in the graph.
 
+        For directed graphs with multi-edges, counts each edge according to its multiplicity.
+
         Time complexity: O(V^2)
 
         Returns:
             int: Number of edges
         """
         if self.directed:
-            # For directed graphs, count all non-zero entries
-            return np.count_nonzero(self.adjacency_matrix)
+            # For directed graphs, sum all values (handles multi-edges)
+            return int(np.sum(self.adjacency_matrix))
         else:
             # For undirected graphs, count upper triangle only (avoid double counting)
             return np.count_nonzero(np.triu(self.adjacency_matrix))
@@ -301,6 +312,9 @@ class Graph:
         """
         Set the adjacency matrix directly.
 
+        For undirected graphs, only binary values (0 or 1) are allowed.
+        For directed graphs, positive integers are allowed (for multi-edges).
+
         Args:
             matrix (np.ndarray): New adjacency matrix
 
@@ -317,8 +331,12 @@ class Graph:
         if np.any(matrix < 0):
             raise ValueError("Matrix cannot contain negative values")
 
-        # For undirected graphs, ensure symmetry
+        # For undirected graphs, ensure binary values and symmetry
         if not self.directed:
+            # Check for binary values (0 or 1 only)
+            if np.any((matrix != 0) & (matrix != 1)):
+                raise ValueError("Undirected graphs must use binary values (0 or 1) only")
+
             if not np.allclose(matrix, matrix.T):
                 raise ValueError("Adjacency matrix must be symmetric for undirected graphs")
 

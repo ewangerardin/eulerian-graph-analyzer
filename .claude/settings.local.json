@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__list_allowed_directories",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__filesystem__create_directory",
+      "mcp__filesystem__write_file",
+      "Bash(python -m pip install:*)",
+      "Bash(python -m pytest tests/ -v --cov=. --cov-report=term-missing --tb=short)",
+      "mcp__github__create_repository",
+      "mcp__github__push_files",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(python -m pytest tests/test_graph.py tests/test_eulerian_solver.py tests/test_integration.py -v)",
+      "Bash(python -m pytest tests/test_multi_edge.py -v)",
+      "Bash(python -m pytest tests/test_multi_edge.py::TestMultiEdgeEdgeCases::test_mixed_single_and_multi_edges -v)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(python -m pytest tests/ --cov=. --cov-report=term-missing --cov-report=html)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

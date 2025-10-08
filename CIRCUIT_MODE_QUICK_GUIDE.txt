@@ -1,0 +1,234 @@
+================================================================================
+  CIRCUIT-ONLY MODE - QUICK REFERENCE GUIDE
+  Eulerian Graph Analyzer
+================================================================================
+
+NEW FEATURE: Circuit-Only Mode
+-------------------------------
+You can now constrain the algorithm to find ONLY Eulerian circuits
+(paths that must return to the starting vertex).
+
+
+WHERE TO FIND IT
+----------------
+In the GUI, under "Graph Settings" section:
+
+  Search Mode:
+    ( ) Path or Circuit    (default - finds any Eulerian path)
+    ( ) Circuit Only       (NEW - only accepts circuits)
+
+  (Circuit: path must return to start)
+
+
+HOW IT WORKS
+------------
+
+1. PATH OR CIRCUIT MODE (Default):
+   - Finds any Eulerian path through the graph
+   - Path can start at one vertex and end at a different vertex
+   - Also finds circuits (circuits are a special type of path)
+
+   Example: Path from vertex 0 to vertex 4
+            0 -> 1 -> 2 -> 3 -> 4
+
+   Undirected graphs: Accepts graphs with 0 or 2 odd-degree vertices
+   Directed graphs:   Accepts balanced graphs or graphs with 1 start/end pair
+
+
+2. CIRCUIT ONLY MODE (New):
+   - ONLY finds Eulerian circuits
+   - Path MUST return to the starting vertex
+   - Rejects graphs that only have non-circular paths
+
+   Example: Circuit returning to start
+            0 -> 1 -> 2 -> 3 -> 4 -> 0
+
+   Undirected graphs: ONLY accepts graphs with all even-degree vertices
+   Directed graphs:   ONLY accepts graphs with in-degree = out-degree for all
+
+
+WHEN TO USE EACH MODE
+---------------------
+
+Use PATH OR CIRCUIT mode when:
+  - You want maximum flexibility
+  - Starting and ending at different points is acceptable
+  - You're exploring general Eulerian properties
+
+Use CIRCUIT ONLY mode when:
+  - You need to return to the starting point
+  - Real-world scenarios like:
+    * Delivery truck must return to warehouse
+    * Security patrol must return to guard station
+    * Tourist wants to end tour at hotel
+    * Mail carrier must return to post office
+
+
+EXAMPLES
+--------
+
+Example 1: Pentagon (Cycle Graph)
+----------------------------------
+Vertices: 5
+Edges: (0,1), (1,2), (2,3), (3,4), (4,0)
+All vertices have degree 2 (even)
+
+PATH OR CIRCUIT mode: ✓ Finds circuit: 0 -> 1 -> 2 -> 3 -> 4 -> 0
+CIRCUIT ONLY mode:    ✓ Finds circuit: 0 -> 1 -> 2 -> 3 -> 4 -> 0
+
+Result: Both modes succeed ✓
+
+
+Example 2: Pentagon + Extra Edge
+---------------------------------
+Vertices: 5
+Edges: (0,1), (1,2), (2,3), (3,4), (4,0), (1,4)
+Vertices 1 and 4 have degree 3 (odd)
+
+PATH OR CIRCUIT mode: ✓ Finds path: 1 -> 0 -> 4 -> 3 -> 2 -> 1 -> 4
+CIRCUIT ONLY mode:    ✗ REJECTED - "Circuit-only mode: Graph has 2
+                          vertices with odd degree (1, 4) - only
+                          Eulerian path exists, not a circuit"
+
+Result: Normal mode succeeds, circuit-only mode rejects ✗
+
+
+Example 3: Simple Path (No Circuit)
+------------------------------------
+Vertices: 4
+Directed Edges: (0,1), (1,2), (2,3)
+
+PATH OR CIRCUIT mode: ✓ Finds path: 0 -> 1 -> 2 -> 3
+CIRCUIT ONLY mode:    ✗ REJECTED - "Circuit-only mode: Graph has start
+                          vertex (0) and end vertex (3) - only Eulerian
+                          path exists, not a circuit"
+
+Result: Normal mode succeeds, circuit-only mode rejects ✗
+
+
+UNDERSTANDING THE RESULTS
+-------------------------
+
+The analysis results now show:
+
+  Search Mode: Circuit Only  (or "Path or Circuit")
+
+This tells you which mode was used for the analysis.
+
+If circuit-only mode rejects a graph, you'll see:
+  - Has Eulerian Circuit: No
+  - Has Eulerian Path: No
+  - Reason: Circuit-only mode: [explanation of why rejected]
+
+The reason will explain:
+  - For undirected: Which vertices have odd degree
+  - For directed: Which vertices are start/end vertices
+  - That only a path (not circuit) exists
+
+
+GRAPH REQUIREMENTS FOR CIRCUITS
+--------------------------------
+
+UNDIRECTED GRAPHS:
+  ✓ Circuit exists if: ALL vertices have EVEN degree
+  ✗ Circuit doesn't exist if: Any vertices have ODD degree
+
+DIRECTED GRAPHS:
+  ✓ Circuit exists if: in-degree = out-degree for ALL vertices
+  ✗ Circuit doesn't exist if: Any vertex has in-degree ≠ out-degree
+
+
+QUICK DECISION TREE
+--------------------
+
+Do you need the path to return to start?
+├─ NO  → Use "Path or Circuit" mode
+│        (default, more permissive)
+│
+└─ YES → Use "Circuit Only" mode
+         (stricter, rejects non-circular paths)
+
+
+TESTING THE FEATURE
+-------------------
+
+To test different scenarios, use the example buttons:
+
+  1. Click "Load Example" -> "Eulerian Circuit"
+     - Try both modes - both should succeed
+
+  2. Click "Load Example" -> "Eulerian Path"
+     - Try both modes - circuit-only should reject
+
+  3. Click "Load Example" -> "No Eulerian Path"
+     - Try both modes - both should reject
+
+
+PROGRAMMATIC USAGE
+------------------
+
+If using the API directly:
+
+  from graph import Graph
+  from eulerian_solver import EulerianSolver
+
+  graph = Graph(5, directed=False)
+  # ... add edges ...
+
+  solver = EulerianSolver(graph)
+
+  # Normal mode (default)
+  result = solver.analyze(circuit_only=False)
+
+  # Circuit-only mode
+  result = solver.analyze(circuit_only=True)
+
+  if result.has_circuit:
+      print(f"Found circuit: {result.path}")
+  else:
+      print(f"No circuit: {result.reason}")
+
+
+ERROR MESSAGES EXPLAINED
+------------------------
+
+"Circuit-only mode: Graph has 2 vertices with odd degree (X, Y)"
+  → The graph has an Eulerian path from X to Y, but not a circuit.
+     In circuit-only mode, this is rejected.
+
+"Circuit-only mode: Graph has start vertex (X) and end vertex (Y)"
+  → The directed graph has an Eulerian path from X to Y, but not a circuit.
+     In circuit-only mode, this is rejected.
+
+
+BACKWARD COMPATIBILITY
+----------------------
+
+All existing code continues to work:
+  - Default behavior is unchanged (accepts paths and circuits)
+  - The circuit_only parameter is optional
+  - Existing code using analyze() without parameters works as before
+
+
+RELATED FILES
+-------------
+
+For more information, see:
+  - CIRCUIT_MODE_CHANGES.md     - Detailed implementation documentation
+  - demo_circuit_mode.py         - Interactive demonstration script
+  - test_circuit_mode.py         - Automated test suite
+
+
+SUPPORT
+-------
+
+If you encounter issues:
+  1. Check that your graph is connected
+  2. Verify vertex degrees (shown in results)
+  3. Try both modes to understand the difference
+  4. Review the reason message for detailed explanation
+
+
+================================================================================
+End of Quick Reference Guide
+================================================================================

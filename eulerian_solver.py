@@ -302,6 +302,8 @@ class EulerianSolver:
         """
         Find Eulerian path/circuit using Hierholzer's algorithm for directed graphs.
 
+        Supports multi-edges: decrements edge multiplicity instead of removing completely.
+
         Time complexity: O(E) where E is the number of edges
 
         Args:
@@ -328,8 +330,8 @@ class EulerianSolver:
                     # Add next vertex to current path
                     current_path.append(next_vertex)
 
-                    # Remove edge (only one direction for directed)
-                    matrix[current_vertex][next_vertex] = 0
+                    # Decrement edge count (handles multi-edges)
+                    matrix[current_vertex][next_vertex] -= 1
 
                     # Move to next vertex
                     current_vertex = next_vertex

@@ -161,6 +161,19 @@ class EulerianGUI:
         matrix_frame = ttk.LabelFrame(parent, text="Adjacency Matrix", padding=10)
         matrix_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+        # Add help text for multi-edge support
+        help_frame = ttk.Frame(matrix_frame)
+        help_frame.pack(fill=tk.X, pady=(0, 5))
+
+        help_text = ttk.Label(
+            help_frame,
+            text="Undirected: use 0 or 1 only\nDirected: use integers ≥0 (values >1 for multi-edges)",
+            font=('Arial', 8),
+            foreground='blue',
+            justify=tk.LEFT
+        )
+        help_text.pack(anchor=tk.W)
+
         # Scrollable canvas for matrix
         canvas = tk.Canvas(matrix_frame, height=300)
         scrollbar = ttk.Scrollbar(matrix_frame, orient=tk.VERTICAL, command=canvas.yview)
@@ -345,6 +358,10 @@ class EulerianGUI:
         """
         Extract adjacency matrix from entry widgets.
 
+        Validates:
+        - Undirected graphs: only binary values (0 or 1) allowed
+        - Directed graphs: positive integers allowed (for multi-edges)
+
         Returns:
             Optional[np.ndarray]: Adjacency matrix or None if invalid input
         """
@@ -356,7 +373,29 @@ class EulerianGUI:
                     if self.matrix_entries[i][j]['state'] != tk.DISABLED:
                         value = self.matrix_entries[i][j].get().strip()
                         if value:
-                            matrix[i][j] = int(value)
+                            int_value = int(value)
+
+                            # Validate based on graph type
+                            if not self.is_directed:
+                                # Undirected graphs: only binary values allowed
+                                if int_value not in [0, 1]:
+                                    messagebox.showerror(
+                                        "Invalid Input",
+                                        f"Undirected graphs must use binary values (0 or 1) only.\n"
+                                        f"Found value {int_value} at position ({i}, {j})."
+                                    )
+                                    return None
+                            else:
+                                # Directed graphs: positive integers allowed
+                                if int_value < 0:
+                                    messagebox.showerror(
+                                        "Invalid Input",
+                                        f"Matrix values must be non-negative.\n"
+                                        f"Found value {int_value} at position ({i}, {j})."
+                                    )
+                                    return None
+
+                            matrix[i][j] = int_value
 
                             # For undirected graphs, ensure symmetry
                             if not self.is_directed and i != j:
