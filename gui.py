@@ -715,9 +715,68 @@ class EulerianGUI:
 
 def run_gui() -> None:
     """Launch the GUI application."""
-    root = tk.Tk()
-    app = EulerianGUI(root)
-    root.mainloop()
+    print("Initializing GUI application...")
+    print("Creating main window...")
+
+    try:
+        root = tk.Tk()
+        print("Root window created successfully")
+
+        print("Initializing GUI components...")
+        app = EulerianGUI(root)
+        print("GUI components initialized successfully")
+
+        # Force window to appear on top and center it
+        print("Configuring window appearance...")
+        root.update_idletasks()
+
+        # Center the window on screen
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        window_width = 1200
+        window_height = 800
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+        # Force window to appear on top
+        root.lift()
+        root.attributes('-topmost', True)
+        root.after_idle(root.attributes, '-topmost', False)
+        root.focus_force()
+
+        print("")
+        print("=" * 60)
+        print("GUI WINDOW OPENED SUCCESSFULLY!")
+        print("=" * 60)
+        print("If you don't see the window:")
+        print("  1. Check your taskbar for 'Eulerian Graph Analyzer'")
+        print("  2. Try Alt+Tab to switch to the window")
+        print("  3. The window is centered on your screen")
+        print("=" * 60)
+        print("")
+        print("Starting main event loop (window will stay open)...")
+
+        root.mainloop()
+
+        print("GUI window closed by user.")
+
+    except Exception as e:
+        print("")
+        print("=" * 60)
+        print("ERROR: Failed to launch GUI!")
+        print("=" * 60)
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print("")
+        print("This may be caused by:")
+        print("  1. Missing tkinter installation")
+        print("  2. Display/graphics driver issues")
+        print("  3. Missing matplotlib backend")
+        print("=" * 60)
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 if __name__ == "__main__":

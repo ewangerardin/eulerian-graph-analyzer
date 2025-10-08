@@ -21,7 +21,9 @@
       "Bash(python -m pytest tests/test_multi_edge.py -v)",
       "Bash(python -m pytest tests/test_multi_edge.py::TestMultiEdgeEdgeCases::test_mixed_single_and_multi_edges -v)",
       "Bash(python -m pytest tests/ -v --tb=short)",
-      "Bash(python -m pytest tests/ --cov=. --cov-report=term-missing --cov-report=html)"
+      "Bash(python -m pytest tests/ --cov=. --cov-report=term-missing --cov-report=html)",
+      "Bash(python:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

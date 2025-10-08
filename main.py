@@ -315,10 +315,36 @@ def main():
             sys.exit(1)
     else:
         # Launch GUI
-        print("Launching Eulerian Graph Analyzer GUI...")
+        print()
+        print("=" * 70)
+        print("EULERIAN GRAPH ANALYZER - GUI MODE")
+        print("=" * 70)
+        print()
+        print("Launching graphical user interface...")
         print("(Run 'python main.py test' to execute test cases)")
         print()
-        run_gui()
+
+        try:
+            run_gui()
+        except Exception as e:
+            print()
+            print("=" * 70)
+            print("FATAL ERROR: Could not launch GUI")
+            print("=" * 70)
+            print(f"Error: {str(e)}")
+            print()
+            print("Please ensure you have all required dependencies installed:")
+            print("  pip install -r requirements.txt")
+            print()
+            print("Required packages:")
+            print("  - tkinter (usually included with Python)")
+            print("  - matplotlib")
+            print("  - networkx")
+            print("  - numpy")
+            print("=" * 70)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
 
 if __name__ == "__main__":
