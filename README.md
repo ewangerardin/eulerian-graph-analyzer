@@ -1,15 +1,16 @@
-# Eulerian Graph Analyzer
+# Graph Analysis Toolkit
 
-A complete Python application for analyzing Eulerian paths and circuits in graphs using Hierholzer's algorithm with a modern GUI interface.
+A complete Python application for graph theory analysis featuring Eulerian paths/circuits, Chinese Postman Problem, and Minimum Spanning Trees with a modern GUI interface.
 
 ## Features
 
 - **Graph Representation**: Adjacency matrix implementation with O(1) edge lookup
-- **Eulerian Detection**: Efficient detection of Eulerian paths and circuits
-- **Hierholzer's Algorithm**: O(E) time complexity for finding routes
-- **Interactive GUI**: Modern tkinter interface with graph visualization
+- **Eulerian Detection**: Efficient detection of Eulerian paths and circuits using Hierholzer's algorithm
+- **Minimum Spanning Tree**: Kruskal's algorithm with Union-Find data structure (O(E log E))
+- **Chinese Postman Problem**: Optimal route for traversing all edges
+- **Interactive GUI**: Modern dark-themed tkinter interface with graph visualization
 - **Support for Both**: Directed and undirected graphs
-- **Visual Highlighting**: Rainbow-colored path visualization
+- **Visual Highlighting**: Rainbow-colored path visualization and MST edge highlighting
 - **Export Results**: Save analysis results to text files
 
 ## Project Structure
@@ -18,8 +19,15 @@ A complete Python application for analyzing Eulerian paths and circuits in graph
 .
 ├── graph.py              # Graph class with adjacency matrix
 ├── eulerian_solver.py    # Eulerian path/circuit detection
+├── mst_solver.py         # Minimum Spanning Tree solver
+├── chinese_postman.py    # Chinese Postman Problem solver
 ├── gui.py                # GUI with visualization
 ├── main.py               # Entry point and test cases
+├── tests/                # Comprehensive test suite
+│   ├── test_graph.py            # Graph class tests
+│   ├── test_eulerian_solver.py  # Eulerian algorithm tests
+│   ├── test_mst.py              # MST solver tests (NEW)
+│   └── test_integration.py      # Integration tests
 ├── requirements.txt      # Dependencies
 └── README.md            # This file
 ```
@@ -58,11 +66,12 @@ python main.py
 ```
 
 The GUI provides:
-- **Matrix Input Grid**: Manual entry of adjacency matrix
+- **Matrix Input Grid**: Manual entry of adjacency matrix with weighted edges
 - **Graph Type Selection**: Radio buttons for directed/undirected
-- **Analyze Button**: Check for Eulerian properties
-- **Results Panel**: Displays analysis results and path
-- **Graph Visualization**: Visual representation with highlighted paths
+- **Analysis Type Selection**: Choose between Eulerian, Chinese Postman, or MST analysis
+- **Analyze Button**: Perform selected analysis
+- **Results Panel**: Displays analysis results with degree information and Eulerian validity
+- **Graph Visualization**: Visual representation with highlighted paths/MST edges
 - **Load Example Buttons**: Pre-configured example graphs
 - **Export Function**: Save results to file
 
@@ -121,6 +130,37 @@ python main.py --help
 4. Reverse the recorded sequence for final path
 5. Time complexity: O(E) where E = number of edges
 
+### MST Solver (`mst_solver.py`)
+
+**Minimum Spanning Tree (MST)**:
+- A subset of edges forming a tree that connects all vertices
+- Has exactly V-1 edges (for connected graph with V vertices)
+- Minimizes total edge weight
+- Acyclic (no cycles)
+- Only for undirected graphs
+
+**Kruskal's Algorithm**:
+1. Sort all edges by weight (ascending)
+2. Initialize Union-Find structure for cycle detection
+3. For each edge in sorted order:
+   - If edge connects different components, add to MST
+   - Union the components
+4. Stop when V-1 edges added or all edges processed
+5. Time complexity: O(E log E) dominated by sorting
+
+**Union-Find Data Structure**:
+- **Path Compression**: Makes find() nearly O(1) amortized
+- **Union by Rank**: Keeps trees balanced
+- Overall amortized complexity: O(α(n)) where α is inverse Ackermann function
+- Effectively constant time for practical purposes
+
+**MST Properties**:
+- Connected graph has exactly one MST (may have multiple with equal weights)
+- Disconnected graph has Minimum Spanning Forest (MSF)
+- Tree always has V-1 edges
+- Removing any MST edge disconnects the tree
+- Adding any non-MST edge creates exactly one cycle
+
 ## Examples
 
 ### Example 1: Pentagon (Eulerian Circuit)
@@ -155,15 +195,37 @@ print(result)
 # Output: Eulerian Path exists (start: 0): 0 -> 1 -> 2 -> 3 -> 1 -> 3 -> 4
 ```
 
-### Example 3: Using GUI
+### Example 3: Minimum Spanning Tree
+
+```python
+from graph import Graph
+from mst_solver import solve_mst
+
+# Create weighted graph
+graph = Graph(4, directed=False)
+graph.add_edge(0, 1, weight=1)
+graph.add_edge(1, 2, weight=2)
+graph.add_edge(2, 3, weight=3)
+graph.add_edge(3, 0, weight=4)
+graph.add_edge(0, 2, weight=5)
+
+# Find MST
+result = solve_mst(graph)
+print(result)
+# Output: MST exists: 3 edges, total weight: 6
+#         Edges: (0,1):1, (1,2):2, (2,3):3
+```
+
+### Example 4: Using GUI
 
 1. Launch GUI: `python main.py`
 2. Set number of vertices (e.g., 5)
-3. Select graph type (Undirected/Directed)
-4. Enter adjacency matrix values
-5. Click "Analyze Graph"
-6. View results and visualization
-7. Optionally export results to file
+3. Select graph type (Undirected for MST)
+4. Select analysis type (Eulerian/Chinese Postman/MST)
+5. Enter adjacency matrix values (use weights for MST)
+6. Click "Analyze Graph"
+7. View results with degree info and Eulerian validity
+8. Optionally export results to file
 
 Or use the "Load Example" buttons for quick demonstrations.
 
@@ -197,8 +259,12 @@ Or use the "Load Example" buttons for quick demonstrations.
 - **Type Hints**: All functions fully typed
 - **Comprehensive Docstrings**: Detailed documentation
 - **Error Handling**: Validation for invalid inputs
-- **Optimizations**: Degree caching, efficient algorithms
-- **Test Coverage**: 6 test cases covering all scenarios
+- **Optimizations**: Degree caching, Union-Find path compression, efficient algorithms
+- **Test Coverage**: 92+ comprehensive tests covering all scenarios
+  - 28 tests for Graph class (98% coverage)
+  - 28 tests for Eulerian solver (99% coverage)
+  - 25+ tests for MST solver (NEW)
+  - Integration tests and stress tests
 
 ## Performance
 
@@ -206,8 +272,11 @@ Or use the "Load Example" buttons for quick demonstrations.
 - **Add/Remove Edge**: O(1)
 - **Connectivity Check**: O(V²) using BFS
 - **Eulerian Detection**: O(V²) for degree calculation
-- **Path Finding**: O(E) using Hierholzer's algorithm
-- **Total Analysis**: O(V² + E) = O(V²) for dense graphs
+- **Eulerian Path Finding**: O(E) using Hierholzer's algorithm
+- **MST Finding**: O(E log E) using Kruskal's algorithm
+- **Union-Find Operations**: O(α(n)) ≈ O(1) amortized
+- **Total Eulerian Analysis**: O(V² + E) = O(V²) for dense graphs
+- **Total MST Analysis**: O(E log E)
 
 ## Limitations
 

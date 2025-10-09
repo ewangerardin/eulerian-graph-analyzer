@@ -23,7 +23,10 @@
       "Bash(python -m pytest tests/ -v --tb=short)",
       "Bash(python -m pytest tests/ --cov=. --cov-report=term-missing --cov-report=html)",
       "Bash(python:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(dir)",
+      "Bash(dir tests)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []

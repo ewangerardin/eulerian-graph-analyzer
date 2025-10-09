@@ -16,6 +16,7 @@ from typing import Optional, List
 from graph import Graph
 from eulerian_solver import EulerianSolver, EulerianResult
 from chinese_postman import ChinesePostmanSolver, ChinesePostmanResult
+from mst_solver import MSTSolver, MSTResult
 
 
 class EulerianGUI:
@@ -42,10 +43,11 @@ class EulerianGUI:
         self.graph: Optional[Graph] = None
         self.result: Optional[EulerianResult] = None
         self.cpp_result: Optional[ChinesePostmanResult] = None
+        self.mst_result: Optional[MSTResult] = None
         self.num_vertices = 5  # Default
         self.is_directed = False
         self.circuit_only = False  # New: circuit-only mode
-        self.analysis_mode = "eulerian"  # "eulerian" or "cpp"
+        self.analysis_mode = "eulerian"  # "eulerian", "cpp", or "mst"
 
         # Matrix entry widgets
         self.matrix_entries = []
@@ -172,9 +174,8 @@ class EulerianGUI:
         self._create_matrix_section(left_panel)
         self._create_action_buttons(left_panel)
 
-        # Setup right panel
+        # Setup right panel (now includes both visualization and results)
         self._create_visualization_section(right_panel)
-        self._create_results_section(right_panel)
 
     def _create_control_section(self, parent: ttk.Frame) -> None:
         """Create the control section with graph settings."""
@@ -255,7 +256,7 @@ class EulerianGUI:
         self.analysis_mode_var = tk.StringVar(value="eulerian")
 
         analysis_frame = ttk.Frame(control_frame)
-        analysis_frame.grid(row=4, column=1, sticky=tk.W, pady=2)
+        analysis_frame.grid(row=4, column=1, columnspan=2, sticky=tk.W, pady=2)
 
         ttk.Radiobutton(
             analysis_frame,
@@ -273,14 +274,22 @@ class EulerianGUI:
             command=self._on_analysis_mode_changed
         ).pack(side=tk.LEFT, padx=10)
 
-        # Add CPP tooltip/help text
-        cpp_help = ttk.Label(
+        ttk.Radiobutton(
+            analysis_frame,
+            text="MST",
+            variable=self.analysis_mode_var,
+            value="mst",
+            command=self._on_analysis_mode_changed
+        ).pack(side=tk.LEFT, padx=10)
+
+        # Add analysis type tooltip/help text
+        analysis_help = ttk.Label(
             control_frame,
-            text="(CPP: find shortest route visiting all edges)",
+            text="(CPP: shortest route | MST: minimum spanning tree)",
             font=('Arial', 8),
             foreground='gray'
         )
-        cpp_help.grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        analysis_help.grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
 
     def _create_matrix_section(self, parent: ttk.Frame) -> None:
         """Create the adjacency matrix input section."""
@@ -379,10 +388,18 @@ class EulerianGUI:
         ).pack(fill=tk.X, pady=2)
 
     def _create_visualization_section(self, parent: ttk.Frame) -> None:
-        """Create the graph visualization section with improved styling."""
-        viz_frame = ttk.LabelFrame(parent, text="🎨  Graph Visualization",
+        """Create the graph visualization and results sections with resizable paned window."""
+        # Create PanedWindow for resizable visualization and results
+        paned_window = tk.PanedWindow(parent, orient=tk.VERTICAL,
+                                     bg=self.colors['bg_dark'],
+                                     sashwidth=8,
+                                     sashrelief=tk.RAISED,
+                                     bd=0)
+        paned_window.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Top pane: Visualization
+        viz_frame = ttk.LabelFrame(paned_window, text="🎨  Graph Visualization",
                                   style='Card.TLabelframe', padding=15)
-        viz_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Matplotlib figure with ultra-modern dark theme
         self.fig = Figure(figsize=(10, 7), dpi=100,
@@ -402,11 +419,9 @@ class EulerianGUI:
         self.ax.set_ylim([0, 1])
         self.ax.axis('off')
 
-    def _create_results_section(self, parent: ttk.Frame) -> None:
-        """Create the results display section with improved styling."""
-        results_frame = ttk.LabelFrame(parent, text="📋  Analysis Results",
+        # Bottom pane: Results
+        results_frame = ttk.LabelFrame(paned_window, text="📋  Analysis Results",
                                       style='Card.TLabelframe', padding=15)
-        results_frame.pack(fill=tk.BOTH, padx=5, pady=5)
 
         self.results_text = scrolledtext.ScrolledText(
             results_frame,
@@ -436,6 +451,19 @@ class EulerianGUI:
         self.results_text.tag_config('error', foreground=self.colors['danger'])
 
         self.results_text.config(state=tk.DISABLED)
+
+        # Add both panes to PanedWindow
+        paned_window.add(viz_frame, minsize=300)
+        paned_window.add(results_frame, minsize=150)
+
+        # Set initial sash position (60% for viz, 40% for results)
+        self.root.update_idletasks()
+        paned_window.sash_place(0, 0, 400)
+
+    def _create_results_section(self, parent: ttk.Frame) -> None:
+        """Create the results display section - now handled in _create_visualization_section."""
+        # This method is no longer used but kept for compatibility
+        pass
 
     def _create_matrix_grid(self, size: int) -> None:
         """
@@ -610,7 +638,7 @@ class EulerianGUI:
             return None
 
     def _analyze_graph(self) -> None:
-        """Analyze the graph for Eulerian properties or CPP and visualize results."""
+        """Analyze the graph for Eulerian properties, CPP, or MST and visualize results."""
         # Get matrix from entries
         matrix = self._get_matrix_from_entries()
         if matrix is None:
@@ -622,16 +650,29 @@ class EulerianGUI:
             self.graph.set_adjacency_matrix(matrix)
 
             # Analyze based on selected mode
-            if self.analysis_mode == "cpp":
+            if self.analysis_mode == "mst":
+                # MST analysis - only for undirected graphs
+                if self.is_directed:
+                    messagebox.showerror("Invalid Graph Type",
+                                       "MST analysis only works with undirected graphs.\n"
+                                       "Please set Graph Type to 'Undirected' and try again.")
+                    return
+                mst_solver = MSTSolver(self.graph)
+                self.mst_result = mst_solver.solve()
+                self.result = None  # Clear Eulerian result
+                self.cpp_result = None  # Clear CPP result
+            elif self.analysis_mode == "cpp":
                 # Chinese Postman Problem analysis
                 cpp_solver = ChinesePostmanSolver(self.graph)
                 self.cpp_result = cpp_solver.solve()
                 self.result = None  # Clear Eulerian result
+                self.mst_result = None  # Clear MST result
             else:
                 # Eulerian analysis with circuit-only mode
                 solver = EulerianSolver(self.graph)
                 self.result = solver.analyze(circuit_only=self.circuit_only)
                 self.cpp_result = None  # Clear CPP result
+                self.mst_result = None  # Clear MST result
 
             # Display results
             self._display_results()
@@ -644,7 +685,9 @@ class EulerianGUI:
 
     def _display_results(self) -> None:
         """Display analysis results in the text widget."""
-        if self.cpp_result:
+        if self.mst_result:
+            self._display_mst_results()
+        elif self.cpp_result:
             self._display_cpp_results()
         elif self.result:
             self._display_eulerian_results()
@@ -774,6 +817,79 @@ class EulerianGUI:
 
         self._update_results("\n".join(output))
 
+    def _display_mst_results(self) -> None:
+        """Display Minimum Spanning Tree results."""
+        output = []
+        output.append("=" * 60)
+        output.append("MINIMUM SPANNING TREE (MST) RESULTS")
+        output.append("=" * 60)
+        output.append("")
+
+        # Graph information
+        graph_type = "Directed" if self.graph.directed else "Undirected"
+        output.append(f"Graph Type: {graph_type}")
+        output.append(f"Vertices: {self.graph.num_vertices}")
+        output.append(f"Edges: {self.graph.get_edge_count()}")
+        output.append(f"Connected: {'Yes' if self.graph.is_connected() else 'No'}")
+        output.append("")
+
+        # Degree information
+        output.append("Vertex Degrees:")
+        for v in range(self.graph.num_vertices):
+            deg = self.graph.get_degree(v)
+            parity = "even" if deg % 2 == 0 else "odd"
+            output.append(f"  Vertex {v}: degree={deg} ({parity})")
+        output.append("")
+
+        # Check Eulerian properties for information
+        solver = EulerianSolver(self.graph)
+        eulerian_result = solver.analyze(circuit_only=self.circuit_only)
+
+        output.append("Eulerian Properties (for reference):")
+        output.append(f"  Has Eulerian Circuit: {'Yes' if eulerian_result.has_circuit else 'No'}")
+        output.append(f"  Has Eulerian Path: {'Yes' if eulerian_result.has_path else 'No'}")
+        output.append("")
+
+        # MST Solution
+        output.append("Minimum Spanning Tree:")
+        output.append(f"  Has MST: {'Yes' if self.mst_result.has_mst else 'No'}")
+        output.append(f"  Reason: {self.mst_result.reason}")
+        output.append("")
+
+        if self.mst_result.has_mst or len(self.mst_result.mst_edges) > 0:
+            output.append("MST Details:")
+            output.append(f"  Number of Edges in MST: {len(self.mst_result.mst_edges)}")
+            output.append(f"  Total Weight: {self.mst_result.total_weight}")
+            output.append(f"  Number of Components: {self.mst_result.num_components}")
+            output.append("")
+
+            if self.mst_result.mst_edges:
+                output.append("MST Edges:")
+                for u, v, weight in self.mst_result.mst_edges:
+                    output.append(f"  Edge ({u}, {v}): weight = {weight}")
+                output.append("")
+
+                # Calculate if MST is Eulerian
+                if self.mst_result.has_mst:
+                    # Check if MST itself has Eulerian properties
+                    mst_graph = Graph(self.graph.num_vertices, directed=False)
+                    for u, v, w in self.mst_result.mst_edges:
+                        mst_graph.add_edge(u, v, weight=w)
+
+                    mst_solver = EulerianSolver(mst_graph)
+                    mst_eulerian = mst_solver.analyze()
+
+                    output.append("MST Eulerian Properties:")
+                    output.append(f"  MST has Eulerian Circuit: {'Yes' if mst_eulerian.has_circuit else 'No'}")
+                    output.append(f"  MST has Eulerian Path: {'Yes' if mst_eulerian.has_path else 'No'}")
+        else:
+            output.append("No MST found (graph is disconnected or has no edges).")
+
+        output.append("")
+        output.append("=" * 60)
+
+        self._update_results("\n".join(output))
+
     def _update_results(self, text: str) -> None:
         """
         Update the results text widget.
@@ -812,7 +928,10 @@ class EulerianGUI:
             pos = {}
 
         # Draw graph
-        if self.cpp_result and self.cpp_result.has_solution:
+        if self.mst_result and (self.mst_result.has_mst or len(self.mst_result.mst_edges) > 0):
+            # Highlight MST edges
+            self._draw_graph_with_mst(G, pos)
+        elif self.cpp_result and self.cpp_result.has_solution:
             # Highlight CPP route with added edges
             self._draw_graph_with_cpp(G, pos)
         elif self.result and self.result.has_path:
@@ -1028,6 +1147,100 @@ class EulerianGUI:
             fontsize=16,
             fontweight='bold',
             color=self.colors['warning'],
+            pad=25
+        )
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
+
+    def _draw_graph_with_mst(self, G: nx.Graph, pos: dict) -> None:
+        """
+        Draw graph with MST edges highlighted.
+
+        Args:
+            G (nx.Graph): NetworkX graph
+            pos (dict): Node positions
+        """
+        # Create set of MST edges
+        mst_edge_set = set()
+        if self.mst_result and self.mst_result.mst_edges:
+            for u, v, weight in self.mst_result.mst_edges:
+                mst_edge_set.add((u, v))
+                mst_edge_set.add((v, u))  # Add reverse for undirected
+
+        # All edges
+        all_edges = list(G.edges())
+
+        # Separate MST and non-MST edges
+        mst_edges = [edge for edge in all_edges if edge in mst_edge_set]
+        non_mst_edges = [edge for edge in all_edges if edge not in mst_edge_set]
+
+        # Draw nodes
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            ax=self.ax,
+            node_color='#90EE90',  # Light green
+            node_size=800
+        )
+
+        # Draw non-MST edges in light gray
+        if non_mst_edges:
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                ax=self.ax,
+                edgelist=non_mst_edges,
+                edge_color='lightgray',
+                width=1,
+                style='dotted',
+                arrows=False
+            )
+
+        # Draw MST edges in green with thicker lines
+        if mst_edges:
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                ax=self.ax,
+                edgelist=mst_edges,
+                edge_color='#00AA00',  # Dark green
+                width=4,
+                arrows=False
+            )
+
+        # Draw labels
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            ax=self.ax,
+            font_size=12,
+            font_weight='bold'
+        )
+
+        # Add edge weights as labels
+        edge_labels = {}
+        for i in range(self.graph.num_vertices):
+            for j in range(i + 1, self.graph.num_vertices):
+                if self.graph.adjacency_matrix[i][j] > 0:
+                    edge_labels[(i, j)] = str(self.graph.adjacency_matrix[i][j])
+
+        nx.draw_networkx_edge_labels(
+            G,
+            pos,
+            edge_labels,
+            ax=self.ax,
+            font_size=9,
+            font_color='#00AA00' if mst_edges else 'gray'
+        )
+
+        # Add MST info to title
+        status = "Found" if self.mst_result.has_mst else "Minimum Spanning Forest"
+        weight_str = f"Total Weight: {self.mst_result.total_weight}"
+        self.ax.set_title(
+            f"🌲 Minimum Spanning Tree {status} - {weight_str}",
+            fontsize=16,
+            fontweight='bold',
+            color=self.colors['success'],
             pad=25
         )
         self.ax.set_facecolor(self.colors['bg_dark'])
