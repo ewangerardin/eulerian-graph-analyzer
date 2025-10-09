@@ -15,6 +15,7 @@ import networkx as nx
 from typing import Optional, List
 from graph import Graph
 from eulerian_solver import EulerianSolver, EulerianResult
+from chinese_postman import ChinesePostmanSolver, ChinesePostmanResult
 
 
 class EulerianGUI:
@@ -40,9 +41,11 @@ class EulerianGUI:
         # Graph state
         self.graph: Optional[Graph] = None
         self.result: Optional[EulerianResult] = None
+        self.cpp_result: Optional[ChinesePostmanResult] = None
         self.num_vertices = 5  # Default
         self.is_directed = False
         self.circuit_only = False  # New: circuit-only mode
+        self.analysis_mode = "eulerian"  # "eulerian" or "cpp"
 
         # Matrix entry widgets
         self.matrix_entries = []
@@ -246,6 +249,38 @@ class EulerianGUI:
             foreground='gray'
         )
         mode_help.grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+
+        # Analysis type selection
+        ttk.Label(control_frame, text="Analysis Type:").grid(row=4, column=0, sticky=tk.W, pady=2)
+        self.analysis_mode_var = tk.StringVar(value="eulerian")
+
+        analysis_frame = ttk.Frame(control_frame)
+        analysis_frame.grid(row=4, column=1, sticky=tk.W, pady=2)
+
+        ttk.Radiobutton(
+            analysis_frame,
+            text="Eulerian",
+            variable=self.analysis_mode_var,
+            value="eulerian",
+            command=self._on_analysis_mode_changed
+        ).pack(side=tk.LEFT)
+
+        ttk.Radiobutton(
+            analysis_frame,
+            text="Chinese Postman",
+            variable=self.analysis_mode_var,
+            value="cpp",
+            command=self._on_analysis_mode_changed
+        ).pack(side=tk.LEFT, padx=10)
+
+        # Add CPP tooltip/help text
+        cpp_help = ttk.Label(
+            control_frame,
+            text="(CPP: find shortest route visiting all edges)",
+            font=('Arial', 8),
+            foreground='gray'
+        )
+        cpp_help.grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
 
     def _create_matrix_section(self, parent: ttk.Frame) -> None:
         """Create the adjacency matrix input section."""
@@ -492,6 +527,10 @@ class EulerianGUI:
         """Handle change in search mode (path or circuit-only)."""
         self.circuit_only = self.circuit_only_var.get()
 
+    def _on_analysis_mode_changed(self) -> None:
+        """Handle change in analysis mode (Eulerian or CPP)."""
+        self.analysis_mode = self.analysis_mode_var.get()
+
     def _clear_matrix(self) -> None:
         """Clear all matrix entries."""
         for i in range(len(self.matrix_entries)):
@@ -571,7 +610,7 @@ class EulerianGUI:
             return None
 
     def _analyze_graph(self) -> None:
-        """Analyze the graph for Eulerian properties and visualize results."""
+        """Analyze the graph for Eulerian properties or CPP and visualize results."""
         # Get matrix from entries
         matrix = self._get_matrix_from_entries()
         if matrix is None:
@@ -582,9 +621,17 @@ class EulerianGUI:
             self.graph = Graph(self.num_vertices, directed=self.is_directed)
             self.graph.set_adjacency_matrix(matrix)
 
-            # Analyze graph with circuit-only mode
-            solver = EulerianSolver(self.graph)
-            self.result = solver.analyze(circuit_only=self.circuit_only)
+            # Analyze based on selected mode
+            if self.analysis_mode == "cpp":
+                # Chinese Postman Problem analysis
+                cpp_solver = ChinesePostmanSolver(self.graph)
+                self.cpp_result = cpp_solver.solve()
+                self.result = None  # Clear Eulerian result
+            else:
+                # Eulerian analysis with circuit-only mode
+                solver = EulerianSolver(self.graph)
+                self.result = solver.analyze(circuit_only=self.circuit_only)
+                self.cpp_result = None  # Clear CPP result
 
             # Display results
             self._display_results()
@@ -597,9 +644,13 @@ class EulerianGUI:
 
     def _display_results(self) -> None:
         """Display analysis results in the text widget."""
-        if not self.result:
-            return
+        if self.cpp_result:
+            self._display_cpp_results()
+        elif self.result:
+            self._display_eulerian_results()
 
+    def _display_eulerian_results(self) -> None:
+        """Display Eulerian analysis results."""
         output = []
         output.append("=" * 60)
         output.append("EULERIAN GRAPH ANALYSIS RESULTS")
@@ -658,6 +709,71 @@ class EulerianGUI:
 
         self._update_results("\n".join(output))
 
+    def _display_cpp_results(self) -> None:
+        """Display Chinese Postman Problem results."""
+        output = []
+        output.append("=" * 60)
+        output.append("CHINESE POSTMAN PROBLEM RESULTS")
+        output.append("=" * 60)
+        output.append("")
+
+        # Graph information
+        graph_type = "Directed" if self.graph.directed else "Undirected"
+        output.append(f"Graph Type: {graph_type}")
+        output.append(f"Vertices: {self.graph.num_vertices}")
+        output.append(f"Edges: {self.graph.get_edge_count()}")
+        output.append(f"Connected: {'Yes' if self.graph.is_connected() else 'No'}")
+        output.append("")
+
+        # Degree information
+        output.append("Vertex Degrees:")
+        for v in range(self.graph.num_vertices):
+            if self.graph.directed:
+                in_deg = self.graph.get_in_degree(v)
+                out_deg = self.graph.get_out_degree(v)
+                output.append(f"  Vertex {v}: in-degree={in_deg}, out-degree={out_deg}")
+            else:
+                deg = self.graph.get_degree(v)
+                parity = "even" if deg % 2 == 0 else "odd"
+                output.append(f"  Vertex {v}: degree={deg} ({parity})")
+        output.append("")
+
+        # CPP Solution
+        output.append("Chinese Postman Solution:")
+        output.append(f"  Has Solution: {'Yes' if self.cpp_result.has_solution else 'No'}")
+        output.append(f"  Reason: {self.cpp_result.reason}")
+        output.append("")
+
+        if self.cpp_result.has_solution:
+            output.append("Cost Analysis:")
+            output.append(f"  Original Graph Cost: {self.cpp_result.original_cost}")
+            if self.cpp_result.added_edges:
+                added_cost = self.cpp_result.total_cost - self.cpp_result.original_cost
+                output.append(f"  Added Edges Cost: {added_cost}")
+                output.append(f"  Total Route Cost: {self.cpp_result.total_cost}")
+            else:
+                output.append(f"  Total Route Cost: {self.cpp_result.total_cost}")
+                output.append("  (No edges needed to be duplicated - graph is Eulerian)")
+            output.append("")
+
+            if self.cpp_result.added_edges:
+                output.append("Edges to Duplicate:")
+                for u, v, cost in self.cpp_result.added_edges:
+                    output.append(f"  Edge ({u}, {v}): cost = {cost}")
+                output.append("")
+
+            if self.cpp_result.optimal_route:
+                output.append("Optimal Route:")
+                output.append(f"  Length: {len(self.cpp_result.optimal_route)} vertices")
+                output.append(f"  Route: {' -> '.join(map(str, self.cpp_result.optimal_route))}")
+        else:
+            output.append("No solution found for Chinese Postman Problem.")
+
+        output.append("")
+        output.append("=" * 60)
+
+        self._update_results("\n".join(output))
+
     def _update_results(self, text: str) -> None:
         """
         Update the results text widget.
@@ -696,7 +812,10 @@ class EulerianGUI:
             pos = {}
 
         # Draw graph
-        if self.result and self.result.has_path:
+        if self.cpp_result and self.cpp_result.has_solution:
+            # Highlight CPP route with added edges
+            self._draw_graph_with_cpp(G, pos)
+        elif self.result and self.result.has_path:
             # Highlight Eulerian path
             self._draw_graph_with_path(G, pos)
         else:
@@ -803,6 +922,112 @@ class EulerianGUI:
             fontsize=18,
             fontweight='bold',
             color=self.colors['success'],
+            pad=25
+        )
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
+
+    def _draw_graph_with_cpp(self, G: nx.Graph, pos: dict) -> None:
+        """
+        Draw graph with CPP solution highlighted.
+
+        Args:
+            G (nx.Graph): NetworkX graph
+            pos (dict): Node positions
+        """
+        # Create edge list from optimal route
+        route_edges = []
+        if self.cpp_result and self.cpp_result.optimal_route and len(self.cpp_result.optimal_route) > 1:
+            for i in range(len(self.cpp_result.optimal_route) - 1):
+                route_edges.append((self.cpp_result.optimal_route[i], self.cpp_result.optimal_route[i + 1]))
+
+        # Create set of added edges (edges that were duplicated)
+        added_edge_set = set()
+        if self.cpp_result and self.cpp_result.added_edges:
+            for u, v, cost in self.cpp_result.added_edges:
+                added_edge_set.add((u, v))
+                if not self.graph.directed:
+                    added_edge_set.add((v, u))
+
+        # All edges
+        all_edges = list(G.edges())
+
+        # Draw nodes
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            ax=self.ax,
+            node_color='lightcoral',
+            node_size=800
+        )
+
+        # Draw original edges (not in route) in gray
+        non_route_edges = [edge for edge in all_edges if edge not in route_edges]
+        if non_route_edges:
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                ax=self.ax,
+                edgelist=non_route_edges,
+                edge_color='lightgray',
+                width=1,
+                arrows=self.graph.directed,
+                arrowsize=15
+            )
+
+        # Draw route edges with gradient colors
+        # Highlight duplicated edges differently
+        if route_edges:
+            colors = plt.cm.rainbow(np.linspace(0, 1, len(route_edges)))
+
+            for idx, edge in enumerate(route_edges):
+                # Check if this edge was added (duplicated)
+                is_added = edge in added_edge_set
+
+                nx.draw_networkx_edges(
+                    G,
+                    pos,
+                    ax=self.ax,
+                    edgelist=[edge],
+                    edge_color=[colors[idx]],
+                    width=4 if is_added else 3,  # Thicker for duplicated edges
+                    style='dashed' if is_added else 'solid',  # Dashed for duplicated
+                    arrows=self.graph.directed,
+                    arrowsize=20
+                )
+
+        # Draw labels
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            ax=self.ax,
+            font_size=12,
+            font_weight='bold'
+        )
+
+        # Add edge weights as labels
+        edge_labels = {}
+        for i in range(self.graph.num_vertices):
+            for j in range(self.graph.num_vertices):
+                if self.graph.adjacency_matrix[i][j] > 0:
+                    edge_labels[(i, j)] = str(self.graph.adjacency_matrix[i][j])
+
+        nx.draw_networkx_edge_labels(
+            G,
+            pos,
+            edge_labels,
+            ax=self.ax,
+            font_size=8
+        )
+
+        # Add CPP info to title
+        cost_str = f"Cost: {self.cpp_result.total_cost}"
+        added_str = f" ({len(self.cpp_result.added_edges)} edges duplicated)" if self.cpp_result.added_edges else ""
+        self.ax.set_title(
+            f"📮 Chinese Postman Solution - {cost_str}{added_str}",
+            fontsize=16,
+            fontweight='bold',
+            color=self.colors['warning'],
             pad=25
         )
         self.ax.set_facecolor(self.colors['bg_dark'])

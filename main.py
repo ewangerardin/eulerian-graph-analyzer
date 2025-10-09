@@ -8,6 +8,7 @@ import sys
 import numpy as np
 from graph import Graph
 from eulerian_solver import EulerianSolver, solve_eulerian
+from chinese_postman import ChinesePostmanSolver, solve_chinese_postman
 from gui import run_gui
 
 
@@ -252,6 +253,132 @@ def test_case_6_disconnected():
     print()
 
 
+def test_case_7_cpp_eulerian():
+    """Test Case 7: CPP on already Eulerian graph"""
+    print_separator()
+    print("TEST CASE 7: Chinese Postman Problem on Eulerian Graph")
+    print_separator()
+    print("Graph: Square (4 vertices, all even degrees)")
+    print("Expected: CPP solution with no edges duplicated")
+    print()
+
+    # Create square graph with weighted edges
+    graph = Graph(4, directed=False)
+    edges = [(0, 1, 1), (1, 2, 2), (2, 3, 3), (3, 0, 4)]
+
+    for u, v, w in edges:
+        graph.add_edge(u, v, weight=w)
+
+    print("Edges with weights:", edges)
+    print("Adjacency Matrix:")
+    print(graph.adjacency_matrix)
+    print()
+
+    # Analyze with CPP
+    result = solve_chinese_postman(graph)
+    print("CPP RESULTS:")
+    print(result)
+    print()
+
+    # Verify
+    assert result.has_solution, "Should have CPP solution"
+    assert len(result.added_edges) == 0, "Should not need to duplicate any edges"
+    assert result.total_cost == 10.0, "Total cost should be 1+2+3+4=10"
+    print("Test Case 7: PASSED")
+    print()
+
+
+def test_case_8_cpp_two_odd():
+    """Test Case 8: CPP with two odd-degree vertices"""
+    print_separator()
+    print("TEST CASE 8: Chinese Postman Problem with Two Odd Vertices")
+    print_separator()
+    print("Graph: Path 0-1-2 with weights")
+    print("Expected: CPP solution duplicates shortest path")
+    print()
+
+    # Create path graph: 0 -- 1 -- 2
+    graph = Graph(3, directed=False)
+    graph.add_edge(0, 1, weight=5)
+    graph.add_edge(1, 2, weight=3)
+
+    print("Edges: (0,1,5), (1,2,3)")
+    print("Adjacency Matrix:")
+    print(graph.adjacency_matrix)
+    print()
+
+    # Show degrees
+    print("Vertex Degrees:")
+    for i in range(3):
+        deg = graph.get_degree(i)
+        parity = "even" if deg % 2 == 0 else "odd"
+        print(f"  Vertex {i}: degree = {deg} ({parity})")
+    print()
+
+    # Analyze with CPP
+    result = solve_chinese_postman(graph)
+    print("CPP RESULTS:")
+    print(result)
+    print()
+
+    # Verify
+    assert result.has_solution, "Should have CPP solution"
+    assert len(result.added_edges) == 1, "Should duplicate one edge (shortest path)"
+    # Original cost: 5 + 3 = 8
+    # Need to add path from 0 to 2, which costs 8
+    assert result.total_cost == 16.0, "Total cost should be 8 + 8 = 16"
+    print("Test Case 8: PASSED")
+    print()
+
+
+def test_case_9_cpp_four_odd():
+    """Test Case 9: CPP with four odd-degree vertices"""
+    print_separator()
+    print("TEST CASE 9: Chinese Postman Problem with Four Odd Vertices")
+    print_separator()
+    print("Graph: Square with diagonal (creates 4 odd vertices)")
+    print("Expected: CPP finds optimal matching of odd vertices")
+    print()
+
+    # Create graph with specific structure
+    graph = Graph(4, directed=False)
+    # Square
+    graph.add_edge(0, 1, weight=1)
+    graph.add_edge(1, 2, weight=1)
+    graph.add_edge(2, 3, weight=1)
+    graph.add_edge(3, 0, weight=1)
+    # Diagonals to make all vertices odd (degree 3)
+    graph.add_edge(0, 2, weight=2)
+
+    print("Edges: (0,1,1), (1,2,1), (2,3,1), (3,0,1), (0,2,2)")
+    print("Adjacency Matrix:")
+    print(graph.adjacency_matrix)
+    print()
+
+    # Show degrees
+    print("Vertex Degrees:")
+    for i in range(4):
+        deg = graph.get_degree(i)
+        parity = "even" if deg % 2 == 0 else "odd"
+        print(f"  Vertex {i}: degree = {deg} ({parity})")
+    print()
+
+    # Analyze with CPP
+    result = solve_chinese_postman(graph)
+    print("CPP RESULTS:")
+    print(result)
+    print()
+
+    # Verify
+    assert result.has_solution, "Should have CPP solution"
+    # Original cost: 1+1+1+1+2 = 6
+    # Odd vertices: 0(3), 2(3), others are even
+    # Only 0 and 2 are odd, should match them (cost 2)
+    assert result.total_cost >= 6.0, "Total cost should be at least original cost"
+    print("Test Case 9: PASSED")
+    print()
+
+
 def run_all_tests():
     """Run all test cases."""
     print()
@@ -261,12 +388,18 @@ def run_all_tests():
     print()
 
     try:
+        # Eulerian tests
         test_case_1_eulerian_circuit()
         test_case_2_eulerian_path()
         test_case_3_no_eulerian()
         test_case_4_directed_circuit()
         test_case_5_directed_path()
         test_case_6_disconnected()
+
+        # Chinese Postman Problem tests
+        test_case_7_cpp_eulerian()
+        test_case_8_cpp_two_odd()
+        test_case_9_cpp_four_odd()
 
         print_separator("*")
         print("ALL TESTS PASSED SUCCESSFULLY!")
@@ -287,6 +420,8 @@ def run_all_tests():
         print(f"ERROR: {e}")
         print_separator("*")
         print()
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

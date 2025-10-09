@@ -284,6 +284,27 @@ class Graph:
             # For undirected graphs, count upper triangle only (avoid double counting)
             return np.count_nonzero(np.triu(self.adjacency_matrix))
 
+    def get_edge_weight(self, from_vertex: int, to_vertex: int) -> int:
+        """
+        Get the weight of an edge between two vertices.
+
+        Time complexity: O(1)
+
+        Args:
+            from_vertex (int): Starting vertex (0-indexed)
+            to_vertex (int): Ending vertex (0-indexed)
+
+        Returns:
+            int: Edge weight (0 if no edge exists)
+
+        Raises:
+            ValueError: If vertex indices are invalid
+        """
+        self._validate_vertex(from_vertex)
+        self._validate_vertex(to_vertex)
+
+        return int(self.adjacency_matrix[from_vertex][to_vertex])
+
     def _validate_vertex(self, vertex: int) -> None:
         """
         Validate that a vertex index is within valid range.
