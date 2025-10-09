@@ -53,51 +53,116 @@ class EulerianGUI:
         self._create_matrix_grid(self.num_vertices)
 
     def _setup_styles(self) -> None:
-        """Configure ttk styles for modern appearance."""
+        """Configure ultra-modern styles with dark theme and gradients."""
         style = ttk.Style()
         style.theme_use('clam')
 
-        # Modern color palette
-        primary_color = '#2563eb'
-        success_color = '#10b981'
+        # Ultra-modern color palette - Dark theme
+        self.colors = {
+            'bg_dark': '#0f172a',        # Deep navy background
+            'bg_card': '#1e293b',        # Card background
+            'bg_light': '#334155',       # Light accent
+            'primary': '#3b82f6',        # Bright blue
+            'primary_hover': '#2563eb',  # Blue hover
+            'accent': '#8b5cf6',         # Purple accent
+            'success': '#10b981',        # Green
+            'warning': '#f59e0b',        # Orange
+            'danger': '#ef4444',         # Red
+            'text': '#f1f5f9',           # Light text
+            'text_muted': '#94a3b8',     # Muted text
+            'border': '#475569'          # Border color
+        }
 
-        # Main action button - large and prominent
+        # Configure root window
+        self.root.configure(bg=self.colors['bg_dark'])
+
+        # Ultra-modern main action button - gradient effect
         style.configure('Action.TButton',
-                       font=('Segoe UI', 11, 'bold'),
-                       padding=(20, 10),
-                       background=primary_color,
-                       foreground='white')
+                       font=('Segoe UI', 12, 'bold'),
+                       padding=(25, 12),
+                       background=self.colors['primary'],
+                       foreground='white',
+                       borderwidth=0,
+                       relief='flat')
         style.map('Action.TButton',
-                 background=[('active', '#1e40af')])
+                 background=[('active', self.colors['primary_hover']),
+                           ('pressed', '#1d4ed8')])
 
-        # Secondary buttons
+        # Modern secondary buttons with subtle style
         style.configure('Secondary.TButton',
                        font=('Segoe UI', 10),
-                       padding=(15, 8))
+                       padding=(18, 10),
+                       background=self.colors['bg_light'],
+                       foreground=self.colors['text'],
+                       borderwidth=1,
+                       relief='flat')
+        style.map('Secondary.TButton',
+                 background=[('active', '#475569')])
 
-        # Example buttons
+        # Sleek example buttons
         style.configure('Example.TButton',
                        font=('Segoe UI', 9),
-                       padding=(10, 5))
+                       padding=(12, 6),
+                       background=self.colors['bg_card'],
+                       foreground=self.colors['text'],
+                       borderwidth=1)
+        style.map('Example.TButton',
+                 background=[('active', self.colors['bg_light'])])
 
-        # Enhanced label frames
+        # Modern frames with dark theme
+        style.configure('Dark.TFrame',
+                       background=self.colors['bg_dark'])
+
+        style.configure('Card.TFrame',
+                       background=self.colors['bg_card'],
+                       relief='flat')
+
+        # Enhanced label frames with modern look
+        style.configure('Card.TLabelframe',
+                       background=self.colors['bg_card'],
+                       borderwidth=2,
+                       relief='flat')
         style.configure('Card.TLabelframe.Label',
-                       font=('Segoe UI', 10, 'bold'),
-                       foreground=primary_color)
+                       font=('Segoe UI', 11, 'bold'),
+                       foreground=self.colors['primary'],
+                       background=self.colors['bg_card'])
+
+        # Labels with dark theme
+        style.configure('TLabel',
+                       background=self.colors['bg_card'],
+                       foreground=self.colors['text'])
+
+        style.configure('Muted.TLabel',
+                       background=self.colors['bg_card'],
+                       foreground=self.colors['text_muted'])
+
+        # Radiobuttons with modern styling
+        style.configure('TRadiobutton',
+                       background=self.colors['bg_card'],
+                       foreground=self.colors['text'],
+                       font=('Segoe UI', 10))
+
+        # Spinbox styling
+        style.configure('TSpinbox',
+                       fieldbackground=self.colors['bg_light'],
+                       background=self.colors['bg_card'],
+                       foreground=self.colors['text'],
+                       borderwidth=0)
 
     def _create_widgets(self) -> None:
-        """Create and layout all GUI widgets."""
-        # Main container with two panels
-        main_container = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        """Create and layout all GUI widgets with modern dark theme."""
+        # Main container with dark theme
+        main_container = tk.Frame(self.root, bg=self.colors['bg_dark'])
+        main_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
 
-        # Left panel for input and controls
-        left_panel = ttk.Frame(main_container)
-        main_container.add(left_panel, weight=1)
+        # Left panel for input and controls - dark themed
+        left_panel = tk.Frame(main_container, bg=self.colors['bg_dark'])
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 10))
+        left_panel.configure(width=450)
 
-        # Right panel for visualization and results
-        right_panel = ttk.Frame(main_container)
-        main_container.add(right_panel, weight=2)
+        # Right panel for visualization and results - dark themed
+        right_panel = tk.Frame(main_container, bg=self.colors['bg_dark'])
+        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # Setup left panel
         self._create_control_section(left_panel)
@@ -188,23 +253,30 @@ class EulerianGUI:
                                      style='Card.TLabelframe', padding=15)
         matrix_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Add help text for multi-edge support
-        help_frame = ttk.Frame(matrix_frame)
-        help_frame.pack(fill=tk.X, pady=(0, 5))
+        # Modern help text with dark theme
+        help_frame = tk.Frame(matrix_frame, bg=self.colors['bg_light'],
+                             highlightbackground=self.colors['border'],
+                             highlightthickness=1)
+        help_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
 
-        help_text = ttk.Label(
+        help_text = tk.Label(
             help_frame,
-            text="Undirected: use 0 or 1 only\nDirected: use integers ≥0 (values >1 for multi-edges)",
-            font=('Arial', 8),
-            foreground='blue',
-            justify=tk.LEFT
+            text="💡 Matrix Input Guide:\n• Undirected: use 0 or 1 only\n• Directed: use integers ≥0 (values >1 = multi-edges)",
+            font=('Segoe UI', 9),
+            foreground=self.colors['text'],
+            background=self.colors['bg_light'],
+            justify=tk.LEFT,
+            padx=12,
+            pady=10
         )
         help_text.pack(anchor=tk.W)
 
-        # Scrollable canvas for matrix
-        canvas = tk.Canvas(matrix_frame, height=300)
+        # Scrollable canvas for matrix with dark theme
+        canvas = tk.Canvas(matrix_frame, height=320,
+                          bg=self.colors['bg_card'],
+                          highlightthickness=0)
         scrollbar = ttk.Scrollbar(matrix_frame, orient=tk.VERTICAL, command=canvas.yview)
-        self.matrix_container = ttk.Frame(canvas)
+        self.matrix_container = tk.Frame(canvas, bg=self.colors['bg_card'])
 
         self.matrix_container.bind(
             "<Configure>",
@@ -277,18 +349,20 @@ class EulerianGUI:
                                   style='Card.TLabelframe', padding=15)
         viz_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Matplotlib figure with better styling
-        self.fig = Figure(figsize=(10, 6), dpi=100, facecolor='white')
+        # Matplotlib figure with ultra-modern dark theme
+        self.fig = Figure(figsize=(10, 7), dpi=100,
+                         facecolor=self.colors['bg_card'])
         self.ax = self.fig.add_subplot(111)
-        self.ax.set_facecolor('#fafafa')
+        self.ax.set_facecolor(self.colors['bg_dark'])
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=viz_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # Initial empty plot with improved message
-        self.ax.text(0.5, 0.5, '📊 Create or load a graph to visualize',
-                     ha='center', va='center', fontsize=14,
-                     color='#64748b', style='italic')
+        # Initial empty plot with modern dark theme message
+        self.ax.text(0.5, 0.5, '🎨 Create or load a graph to visualize',
+                     ha='center', va='center', fontsize=16,
+                     color=self.colors['text_muted'],
+                     style='italic', weight='light')
         self.ax.set_xlim([0, 1])
         self.ax.set_ylim([0, 1])
         self.ax.axis('off')
@@ -303,15 +377,29 @@ class EulerianGUI:
             results_frame,
             height=12,
             wrap=tk.WORD,
-            font=('Consolas', 10),
-            bg='#f8f9fa',
+            font=('Consolas', 10, 'bold'),
+            bg=self.colors['bg_dark'],
+            fg=self.colors['text'],
             relief=tk.FLAT,
-            padx=10,
-            pady=10
+            padx=15,
+            pady=15,
+            insertbackground=self.colors['primary'],
+            selectbackground=self.colors['primary'],
+            selectforeground='white'
         )
         self.results_text.pack(fill=tk.BOTH, expand=True)
-        self.results_text.insert(tk.END, "📝 No analysis performed yet.\n\n")
-        self.results_text.insert(tk.END, "Click '🔍 Analyze Graph' to check for Eulerian properties.")
+        self.results_text.insert(tk.END, "📝 No analysis performed yet.\n\n", 'muted')
+        self.results_text.insert(tk.END, "Click '🔍 Analyze Graph' to check for Eulerian properties.", 'muted')
+
+        # Configure tags for colored output
+        self.results_text.tag_config('muted', foreground=self.colors['text_muted'])
+        self.results_text.tag_config('primary', foreground=self.colors['primary'],
+                                    font=('Consolas', 10, 'bold'))
+        self.results_text.tag_config('success', foreground=self.colors['success'],
+                                    font=('Consolas', 10, 'bold'))
+        self.results_text.tag_config('warning', foreground=self.colors['warning'])
+        self.results_text.tag_config('error', foreground=self.colors['danger'])
+
         self.results_text.config(state=tk.DISABLED)
 
     def _create_matrix_grid(self, size: int) -> None:
@@ -326,35 +414,65 @@ class EulerianGUI:
             widget.destroy()
         self.matrix_entries = []
 
-        # Create header row
-        ttk.Label(self.matrix_container, text="", width=3).grid(row=0, column=0)
+        # Create header row with modern dark styling
+        header_label = tk.Label(self.matrix_container, text="", width=3,
+                               bg=self.colors['bg_card'])
+        header_label.grid(row=0, column=0, padx=2, pady=2)
+
         for j in range(size):
-            ttk.Label(
+            header = tk.Label(
                 self.matrix_container,
                 text=str(j),
-                font=('Arial', 9, 'bold'),
-                width=4
-            ).grid(row=0, column=j + 1)
+                font=('Segoe UI', 10, 'bold'),
+                width=5,
+                bg=self.colors['bg_light'],
+                fg=self.colors['primary'],
+                pady=8
+            )
+            header.grid(row=0, column=j + 1, padx=1, pady=2)
 
-        # Create matrix entries
+        # Create matrix entries with ultra-modern styling
         for i in range(size):
             # Row header
-            ttk.Label(
+            row_header = tk.Label(
                 self.matrix_container,
                 text=str(i),
-                font=('Arial', 9, 'bold'),
-                width=3
-            ).grid(row=i + 1, column=0)
+                font=('Segoe UI', 10, 'bold'),
+                width=3,
+                bg=self.colors['bg_light'],
+                fg=self.colors['primary'],
+                padx=8
+            )
+            row_header.grid(row=i + 1, column=0, padx=2, pady=1)
 
             row_entries = []
             for j in range(size):
-                entry = ttk.Entry(self.matrix_container, width=4, justify=tk.CENTER)
+                # Modern styled entry with dark theme
+                entry = tk.Entry(self.matrix_container, width=5,
+                               justify=tk.CENTER,
+                               font=('Segoe UI', 11, 'bold'),
+                               bg=self.colors['bg_light'],
+                               fg=self.colors['text'],
+                               insertbackground=self.colors['primary'],
+                               relief=tk.FLAT,
+                               borderwidth=2,
+                               highlightbackground=self.colors['border'],
+                               highlightcolor=self.colors['primary'],
+                               highlightthickness=1)
                 entry.insert(0, "0")
                 entry.grid(row=i + 1, column=j + 1, padx=1, pady=1)
 
                 # Disable diagonal entries for undirected graphs
                 if i == j and not self.is_directed:
-                    entry.config(state=tk.DISABLED)
+                    entry.config(state=tk.DISABLED,
+                               disabledbackground=self.colors['bg_card'],
+                               disabledforeground=self.colors['text_muted'])
+                else:
+                    # Add focus effects
+                    entry.bind('<FocusIn>', lambda e, ent=entry: ent.config(
+                        highlightthickness=2))
+                    entry.bind('<FocusOut>', lambda e, ent=entry: ent.config(
+                        highlightthickness=1))
 
                 row_entries.append(entry)
 
@@ -382,15 +500,17 @@ class EulerianGUI:
                     self.matrix_entries[i][j].delete(0, tk.END)
                     self.matrix_entries[i][j].insert(0, "0")
 
-        # Clear visualization and results
+        # Clear visualization with dark theme
         self.ax.clear()
-        self.ax.text(0.5, 0.5, '📊 Create or load a graph to visualize',
-                     ha='center', va='center', fontsize=14,
-                     color='#64748b', style='italic')
+        self.ax.text(0.5, 0.5, '🎨 Create or load a graph to visualize',
+                     ha='center', va='center', fontsize=16,
+                     color=self.colors['text_muted'],
+                     style='italic', weight='light')
         self.ax.set_xlim([0, 1])
         self.ax.set_ylim([0, 1])
         self.ax.axis('off')
-        self.ax.set_facecolor('#fafafa')
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
         self.canvas.draw()
 
         self._update_results("✓ Matrix cleared. Enter new graph data.")
@@ -598,13 +718,14 @@ class EulerianGUI:
 
         self.ax.set_title(
             f"{'Directed' if self.graph.directed else 'Undirected'} Graph Visualization",
-            fontsize=16,
+            fontsize=18,
             fontweight='bold',
-            color='#2563eb',
-            pad=20
+            color=self.colors['primary'],
+            pad=25
         )
         self.ax.axis('off')
-        self.ax.set_facecolor('#fafafa')
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
         self.canvas.draw()
 
     def _draw_graph_with_path(self, G: nx.Graph, pos: dict) -> None:
@@ -675,15 +796,17 @@ class EulerianGUI:
             font_weight='bold'
         )
 
-        # Add path type to title
+        # Add path type to title with modern styling
         path_type = "Eulerian Circuit" if self.result.has_circuit else "Eulerian Path"
         self.ax.set_title(
-            f"{path_type} 🌈 (Rainbow shows path order)",
-            fontsize=16,
+            f"✨ {path_type} Found! 🌈",
+            fontsize=18,
             fontweight='bold',
-            color='#10b981',
-            pad=20
+            color=self.colors['success'],
+            pad=25
         )
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
 
     def _load_example(self, example_type: str) -> None:
         """
