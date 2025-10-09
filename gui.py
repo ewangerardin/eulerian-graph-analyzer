@@ -33,8 +33,9 @@ class EulerianGUI:
             root (tk.Tk): Root tkinter window
         """
         self.root = root
-        self.root.title("Eulerian Graph Analyzer")
-        self.root.geometry("1200x800")
+        self.root.title("🔄 Eulerian Graph Analyzer")
+        self.root.geometry("1400x900")
+        self.root.minsize(1200, 700)
 
         # Graph state
         self.graph: Optional[Graph] = None
@@ -56,9 +57,33 @@ class EulerianGUI:
         style = ttk.Style()
         style.theme_use('clam')
 
-        # Configure button styles
-        style.configure('Action.TButton', font=('Arial', 10, 'bold'), padding=5)
-        style.configure('Example.TButton', font=('Arial', 9), padding=3)
+        # Modern color palette
+        primary_color = '#2563eb'
+        success_color = '#10b981'
+
+        # Main action button - large and prominent
+        style.configure('Action.TButton',
+                       font=('Segoe UI', 11, 'bold'),
+                       padding=(20, 10),
+                       background=primary_color,
+                       foreground='white')
+        style.map('Action.TButton',
+                 background=[('active', '#1e40af')])
+
+        # Secondary buttons
+        style.configure('Secondary.TButton',
+                       font=('Segoe UI', 10),
+                       padding=(15, 8))
+
+        # Example buttons
+        style.configure('Example.TButton',
+                       font=('Segoe UI', 9),
+                       padding=(10, 5))
+
+        # Enhanced label frames
+        style.configure('Card.TLabelframe.Label',
+                       font=('Segoe UI', 10, 'bold'),
+                       foreground=primary_color)
 
     def _create_widgets(self) -> None:
         """Create and layout all GUI widgets."""
@@ -85,7 +110,8 @@ class EulerianGUI:
 
     def _create_control_section(self, parent: ttk.Frame) -> None:
         """Create the control section with graph settings."""
-        control_frame = ttk.LabelFrame(parent, text="Graph Settings", padding=10)
+        control_frame = ttk.LabelFrame(parent, text="⚙️  Graph Configuration",
+                                      style='Card.TLabelframe', padding=15)
         control_frame.pack(fill=tk.X, padx=5, pady=5)
 
         # Number of vertices
@@ -158,7 +184,8 @@ class EulerianGUI:
 
     def _create_matrix_section(self, parent: ttk.Frame) -> None:
         """Create the adjacency matrix input section."""
-        matrix_frame = ttk.LabelFrame(parent, text="Adjacency Matrix", padding=10)
+        matrix_frame = ttk.LabelFrame(parent, text="📊  Adjacency Matrix",
+                                     style='Card.TLabelframe', padding=15)
         matrix_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Add help text for multi-edge support
@@ -191,88 +218,100 @@ class EulerianGUI:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
     def _create_action_buttons(self, parent: ttk.Frame) -> None:
-        """Create action buttons section."""
-        button_frame = ttk.Frame(parent)
+        """Create action buttons section with improved styling."""
+        button_frame = ttk.Frame(parent, padding=5)
         button_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        # Primary actions
+        # Primary action - Analyze (most prominent)
         ttk.Button(
             button_frame,
-            text="Analyze Graph",
+            text="🔍  Analyze Graph",
             style='Action.TButton',
             command=self._analyze_graph
-        ).pack(fill=tk.X, pady=2)
+        ).pack(fill=tk.X, pady=(0, 10))
 
+        # Secondary actions
         ttk.Button(
             button_frame,
-            text="Clear Matrix",
+            text="🗑️  Clear Matrix",
+            style='Secondary.TButton',
             command=self._clear_matrix
-        ).pack(fill=tk.X, pady=2)
+        ).pack(fill=tk.X, pady=(0, 8))
 
         ttk.Button(
             button_frame,
-            text="Export Results",
+            text="💾  Export Results",
+            style='Secondary.TButton',
             command=self._export_results
-        ).pack(fill=tk.X, pady=2)
+        ).pack(fill=tk.X, pady=(0, 8))
 
-        # Example graphs
-        examples_frame = ttk.LabelFrame(button_frame, text="Load Example", padding=5)
-        examples_frame.pack(fill=tk.X, pady=5)
+        # Example graphs section
+        examples_frame = ttk.LabelFrame(button_frame, text="📚  Load Example",
+                                       style='Card.TLabelframe', padding=10)
+        examples_frame.pack(fill=tk.X, pady=(10, 0))
 
         ttk.Button(
             examples_frame,
-            text="Eulerian Circuit",
+            text="✓  Eulerian Circuit",
             style='Example.TButton',
             command=lambda: self._load_example("circuit")
-        ).pack(fill=tk.X, pady=1)
+        ).pack(fill=tk.X, pady=2)
 
         ttk.Button(
             examples_frame,
-            text="Eulerian Path",
+            text="→  Eulerian Path",
             style='Example.TButton',
             command=lambda: self._load_example("path")
-        ).pack(fill=tk.X, pady=1)
+        ).pack(fill=tk.X, pady=2)
 
         ttk.Button(
             examples_frame,
-            text="No Eulerian Path",
+            text="✗  No Eulerian Path",
             style='Example.TButton',
             command=lambda: self._load_example("none")
-        ).pack(fill=tk.X, pady=1)
+        ).pack(fill=tk.X, pady=2)
 
     def _create_visualization_section(self, parent: ttk.Frame) -> None:
-        """Create the graph visualization section."""
-        viz_frame = ttk.LabelFrame(parent, text="Graph Visualization", padding=10)
+        """Create the graph visualization section with improved styling."""
+        viz_frame = ttk.LabelFrame(parent, text="🎨  Graph Visualization",
+                                  style='Card.TLabelframe', padding=15)
         viz_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Matplotlib figure
-        self.fig = Figure(figsize=(8, 6), dpi=100)
+        # Matplotlib figure with better styling
+        self.fig = Figure(figsize=(10, 6), dpi=100, facecolor='white')
         self.ax = self.fig.add_subplot(111)
+        self.ax.set_facecolor('#fafafa')
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=viz_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # Initial empty plot
-        self.ax.text(0.5, 0.5, 'Create or load a graph to visualize',
-                     ha='center', va='center', fontsize=12, color='gray')
+        # Initial empty plot with improved message
+        self.ax.text(0.5, 0.5, '📊 Create or load a graph to visualize',
+                     ha='center', va='center', fontsize=14,
+                     color='#64748b', style='italic')
         self.ax.set_xlim([0, 1])
         self.ax.set_ylim([0, 1])
         self.ax.axis('off')
 
     def _create_results_section(self, parent: ttk.Frame) -> None:
-        """Create the results display section."""
-        results_frame = ttk.LabelFrame(parent, text="Analysis Results", padding=10)
+        """Create the results display section with improved styling."""
+        results_frame = ttk.LabelFrame(parent, text="📋  Analysis Results",
+                                      style='Card.TLabelframe', padding=15)
         results_frame.pack(fill=tk.BOTH, padx=5, pady=5)
 
         self.results_text = scrolledtext.ScrolledText(
             results_frame,
-            height=10,
+            height=12,
             wrap=tk.WORD,
-            font=('Courier', 10)
+            font=('Consolas', 10),
+            bg='#f8f9fa',
+            relief=tk.FLAT,
+            padx=10,
+            pady=10
         )
         self.results_text.pack(fill=tk.BOTH, expand=True)
-        self.results_text.insert(tk.END, "No analysis performed yet.\n\n")
-        self.results_text.insert(tk.END, "Click 'Analyze Graph' to check for Eulerian properties.")
+        self.results_text.insert(tk.END, "📝 No analysis performed yet.\n\n")
+        self.results_text.insert(tk.END, "Click '🔍 Analyze Graph' to check for Eulerian properties.")
         self.results_text.config(state=tk.DISABLED)
 
     def _create_matrix_grid(self, size: int) -> None:
@@ -345,14 +384,16 @@ class EulerianGUI:
 
         # Clear visualization and results
         self.ax.clear()
-        self.ax.text(0.5, 0.5, 'Create or load a graph to visualize',
-                     ha='center', va='center', fontsize=12, color='gray')
+        self.ax.text(0.5, 0.5, '📊 Create or load a graph to visualize',
+                     ha='center', va='center', fontsize=14,
+                     color='#64748b', style='italic')
         self.ax.set_xlim([0, 1])
         self.ax.set_ylim([0, 1])
         self.ax.axis('off')
+        self.ax.set_facecolor('#fafafa')
         self.canvas.draw()
 
-        self._update_results("Matrix cleared. Enter new graph data.")
+        self._update_results("✓ Matrix cleared. Enter new graph data.")
 
     def _get_matrix_from_entries(self) -> Optional[np.ndarray]:
         """
@@ -557,10 +598,13 @@ class EulerianGUI:
 
         self.ax.set_title(
             f"{'Directed' if self.graph.directed else 'Undirected'} Graph Visualization",
-            fontsize=14,
-            fontweight='bold'
+            fontsize=16,
+            fontweight='bold',
+            color='#2563eb',
+            pad=20
         )
         self.ax.axis('off')
+        self.ax.set_facecolor('#fafafa')
         self.canvas.draw()
 
     def _draw_graph_with_path(self, G: nx.Graph, pos: dict) -> None:
@@ -634,9 +678,11 @@ class EulerianGUI:
         # Add path type to title
         path_type = "Eulerian Circuit" if self.result.has_circuit else "Eulerian Path"
         self.ax.set_title(
-            f"{path_type} Visualization (Rainbow colors show path sequence)",
-            fontsize=14,
-            fontweight='bold'
+            f"{path_type} 🌈 (Rainbow shows path order)",
+            fontsize=16,
+            fontweight='bold',
+            color='#10b981',
+            pad=20
         )
 
     def _load_example(self, example_type: str) -> None:
