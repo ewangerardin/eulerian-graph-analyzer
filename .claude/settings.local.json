@@ -26,7 +26,8 @@
       "Bash(timeout:*)",
       "Bash(dir)",
       "Bash(dir tests)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

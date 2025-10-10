@@ -17,6 +17,8 @@ from graph import Graph
 from eulerian_solver import EulerianSolver, EulerianResult
 from chinese_postman import ChinesePostmanSolver, ChinesePostmanResult
 from mst_solver import MSTSolver, MSTResult
+from tsp_solver import TSPSolver, TSPResult
+from hamiltonian_solver import HamiltonianSolver, HamiltonianResult
 
 
 class EulerianGUI:
@@ -44,10 +46,12 @@ class EulerianGUI:
         self.result: Optional[EulerianResult] = None
         self.cpp_result: Optional[ChinesePostmanResult] = None
         self.mst_result: Optional[MSTResult] = None
+        self.tsp_result: Optional[TSPResult] = None
+        self.hamiltonian_result: Optional[HamiltonianResult] = None
         self.num_vertices = 5  # Default
         self.is_directed = False
         self.circuit_only = False  # New: circuit-only mode
-        self.analysis_mode = "eulerian"  # "eulerian", "cpp", or "mst"
+        self.analysis_mode = "eulerian"  # "eulerian", "cpp", "mst", "tsp", or "hamiltonian"
 
         # Matrix entry widgets
         self.matrix_entries = []
@@ -268,11 +272,11 @@ class EulerianGUI:
 
         ttk.Radiobutton(
             analysis_frame,
-            text="Chinese Postman",
+            text="CPP",
             variable=self.analysis_mode_var,
             value="cpp",
             command=self._on_analysis_mode_changed
-        ).pack(side=tk.LEFT, padx=10)
+        ).pack(side=tk.LEFT, padx=5)
 
         ttk.Radiobutton(
             analysis_frame,
@@ -280,16 +284,36 @@ class EulerianGUI:
             variable=self.analysis_mode_var,
             value="mst",
             command=self._on_analysis_mode_changed
-        ).pack(side=tk.LEFT, padx=10)
+        ).pack(side=tk.LEFT, padx=5)
+
+        # Second row for TSP and Hamiltonian
+        analysis_frame2 = ttk.Frame(control_frame)
+        analysis_frame2.grid(row=5, column=1, columnspan=2, sticky=tk.W, pady=2)
+
+        ttk.Radiobutton(
+            analysis_frame2,
+            text="TSP",
+            variable=self.analysis_mode_var,
+            value="tsp",
+            command=self._on_analysis_mode_changed
+        ).pack(side=tk.LEFT)
+
+        ttk.Radiobutton(
+            analysis_frame2,
+            text="Hamiltonian",
+            variable=self.analysis_mode_var,
+            value="hamiltonian",
+            command=self._on_analysis_mode_changed
+        ).pack(side=tk.LEFT, padx=5)
 
         # Add analysis type tooltip/help text
         analysis_help = ttk.Label(
             control_frame,
-            text="(CPP: shortest route | MST: minimum spanning tree)",
+            text="(CPP: shortest route | MST: spanning tree | TSP: tour | Hamiltonian: path/circuit)",
             font=('Arial', 8),
             foreground='gray'
         )
-        analysis_help.grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        analysis_help.grid(row=6, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
 
     def _create_matrix_section(self, parent: ttk.Frame) -> None:
         """Create the adjacency matrix input section."""
@@ -661,18 +685,48 @@ class EulerianGUI:
                 self.mst_result = mst_solver.solve()
                 self.result = None  # Clear Eulerian result
                 self.cpp_result = None  # Clear CPP result
+                self.tsp_result = None
+                self.hamiltonian_result = None
             elif self.analysis_mode == "cpp":
                 # Chinese Postman Problem analysis
                 cpp_solver = ChinesePostmanSolver(self.graph)
                 self.cpp_result = cpp_solver.solve()
                 self.result = None  # Clear Eulerian result
                 self.mst_result = None  # Clear MST result
+                self.tsp_result = None
+                self.hamiltonian_result = None
+            elif self.analysis_mode == "tsp":
+                # Traveling Salesman Problem analysis - only for undirected graphs
+                if self.is_directed:
+                    messagebox.showerror("Invalid Graph Type",
+                                       "TSP analysis only works with undirected graphs.\n"
+                                       "Please set Graph Type to 'Undirected' and try again.")
+                    return
+                tsp_solver = TSPSolver(self.graph)
+                self.tsp_result = tsp_solver.solve(algorithm="auto")
+                self.result = None
+                self.cpp_result = None
+                self.mst_result = None
+                self.hamiltonian_result = None
+            elif self.analysis_mode == "hamiltonian":
+                # Hamiltonian path/circuit analysis
+                hamiltonian_solver = HamiltonianSolver(self.graph, timeout=5.0)
+                self.hamiltonian_result = hamiltonian_solver.solve(
+                    circuit_only=self.circuit_only,
+                    use_tsp_reduction=False
+                )
+                self.result = None
+                self.cpp_result = None
+                self.mst_result = None
+                self.tsp_result = None
             else:
                 # Eulerian analysis with circuit-only mode
                 solver = EulerianSolver(self.graph)
                 self.result = solver.analyze(circuit_only=self.circuit_only)
                 self.cpp_result = None  # Clear CPP result
                 self.mst_result = None  # Clear MST result
+                self.tsp_result = None
+                self.hamiltonian_result = None
 
             # Display results
             self._display_results()
@@ -689,6 +743,10 @@ class EulerianGUI:
             self._display_mst_results()
         elif self.cpp_result:
             self._display_cpp_results()
+        elif self.tsp_result:
+            self._display_tsp_results()
+        elif self.hamiltonian_result:
+            self._display_hamiltonian_results()
         elif self.result:
             self._display_eulerian_results()
 
@@ -890,6 +948,107 @@ class EulerianGUI:
 
         self._update_results("\n".join(output))
 
+    def _display_tsp_results(self) -> None:
+        """Display Traveling Salesman Problem results."""
+        output = []
+        output.append("=" * 60)
+        output.append("TRAVELING SALESMAN PROBLEM (TSP) RESULTS")
+        output.append("=" * 60)
+        output.append("")
+
+        # Graph information
+        graph_type = "Directed" if self.graph.directed else "Undirected"
+        output.append(f"Graph Type: {graph_type}")
+        output.append(f"Vertices: {self.graph.num_vertices}")
+        output.append(f"Edges: {self.graph.get_edge_count()}")
+        output.append(f"Connected: {'Yes' if self.graph.is_connected() else 'No'}")
+        output.append("")
+
+        # TSP Solution
+        output.append("TSP Solution:")
+        output.append(f"  Has Tour: {'Yes' if self.tsp_result.has_tour else 'No'}")
+        output.append(f"  Algorithm: {self.tsp_result.algorithm_used}")
+        if self.tsp_result.is_approximate:
+            ratio_str = f"{self.tsp_result.approximation_ratio}×" if self.tsp_result.approximation_ratio else "N/A"
+            output.append(f"  Approximation: Yes (ratio: {ratio_str})")
+        else:
+            output.append(f"  Approximation: No (optimal solution)")
+        output.append(f"  Reason: {self.tsp_result.reason}")
+        output.append("")
+
+        if self.tsp_result.has_tour:
+            output.append("Tour Details:")
+            output.append(f"  Total Distance: {self.tsp_result.total_distance}")
+            output.append(f"  Tour Length: {len(self.tsp_result.tour_path)} vertices")
+            output.append(f"  Tour Path: {' -> '.join(map(str, self.tsp_result.tour_path))}")
+
+            # Verify tour is valid
+            if len(self.tsp_result.tour_path) > 0:
+                if self.tsp_result.tour_path[0] == self.tsp_result.tour_path[-1]:
+                    output.append(f"  ✓ Valid tour: returns to start vertex {self.tsp_result.tour_path[0]}")
+        else:
+            output.append("No TSP tour found.")
+
+        output.append("")
+        output.append("=" * 60)
+
+        self._update_results("\n".join(output))
+
+    def _display_hamiltonian_results(self) -> None:
+        """Display Hamiltonian path/circuit results."""
+        output = []
+        output.append("=" * 60)
+        output.append("HAMILTONIAN PATH/CIRCUIT RESULTS")
+        output.append("=" * 60)
+        output.append("")
+
+        # Graph information
+        graph_type = "Directed" if self.graph.directed else "Undirected"
+        search_mode = "Circuit Only" if self.circuit_only else "Path or Circuit"
+        output.append(f"Graph Type: {graph_type}")
+        output.append(f"Search Mode: {search_mode}")
+        output.append(f"Vertices: {self.graph.num_vertices}")
+        output.append(f"Edges: {self.graph.get_edge_count()}")
+        output.append(f"Connected: {'Yes' if self.graph.is_connected() else 'No'}")
+        output.append("")
+
+        # Hamiltonian Solution
+        output.append("Hamiltonian Analysis:")
+        output.append(f"  Has Circuit: {'Yes' if self.hamiltonian_result.has_circuit else 'No'}")
+        output.append(f"  Has Path: {'Yes' if self.hamiltonian_result.has_path else 'No'}")
+        output.append(f"  Algorithm: {self.hamiltonian_result.algorithm_used}")
+        if self.hamiltonian_result.timeout:
+            output.append(f"  ⚠ Search timed out (5s limit)")
+        output.append(f"  Reason: {self.hamiltonian_result.reason}")
+        output.append("")
+
+        if self.hamiltonian_result.has_path:
+            path_type = "Circuit" if self.hamiltonian_result.has_circuit else "Path"
+            output.append(f"Hamiltonian {path_type}:")
+            output.append(f"  Length: {len(self.hamiltonian_result.path)} vertices")
+
+            if self.hamiltonian_result.has_circuit:
+                # Add return edge for visualization
+                path_str = ' -> '.join(map(str, self.hamiltonian_result.path)) + f" -> {self.hamiltonian_result.path[0]}"
+            else:
+                path_str = ' -> '.join(map(str, self.hamiltonian_result.path))
+
+            output.append(f"  Path: {path_str}")
+
+            # Verify all vertices visited
+            if len(set(self.hamiltonian_result.path)) == self.graph.num_vertices:
+                output.append(f"  ✓ Valid: all {self.graph.num_vertices} vertices visited exactly once")
+        else:
+            if self.circuit_only:
+                output.append("No Hamiltonian circuit found in circuit-only mode.")
+            else:
+                output.append("No Hamiltonian path or circuit found.")
+
+        output.append("")
+        output.append("=" * 60)
+
+        self._update_results("\n".join(output))
+
     def _update_results(self, text: str) -> None:
         """
         Update the results text widget.
@@ -934,6 +1093,12 @@ class EulerianGUI:
         elif self.cpp_result and self.cpp_result.has_solution:
             # Highlight CPP route with added edges
             self._draw_graph_with_cpp(G, pos)
+        elif self.tsp_result and self.tsp_result.has_tour:
+            # Highlight TSP tour
+            self._draw_graph_with_tsp(G, pos)
+        elif self.hamiltonian_result and self.hamiltonian_result.has_path:
+            # Highlight Hamiltonian path/circuit
+            self._draw_graph_with_hamiltonian(G, pos)
         elif self.result and self.result.has_path:
             # Highlight Eulerian path
             self._draw_graph_with_path(G, pos)
@@ -1241,6 +1406,180 @@ class EulerianGUI:
             fontsize=16,
             fontweight='bold',
             color=self.colors['success'],
+            pad=25
+        )
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
+
+    def _draw_graph_with_tsp(self, G: nx.Graph, pos: dict) -> None:
+        """
+        Draw graph with TSP tour highlighted.
+
+        Args:
+            G (nx.Graph): NetworkX graph
+            pos (dict): Node positions
+        """
+        # Create edge list from TSP tour
+        tour_edges = []
+        if self.tsp_result and self.tsp_result.tour_path and len(self.tsp_result.tour_path) > 1:
+            for i in range(len(self.tsp_result.tour_path) - 1):
+                tour_edges.append((self.tsp_result.tour_path[i], self.tsp_result.tour_path[i + 1]))
+
+        # All edges
+        all_edges = list(G.edges())
+
+        # Draw nodes
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            ax=self.ax,
+            node_color='#87CEEB',  # Sky blue
+            node_size=800
+        )
+
+        # Draw non-tour edges in light gray
+        non_tour_edges = [edge for edge in all_edges if edge not in tour_edges and (edge[1], edge[0]) not in tour_edges]
+        if non_tour_edges:
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                ax=self.ax,
+                edgelist=non_tour_edges,
+                edge_color='lightgray',
+                width=1,
+                arrows=False
+            )
+
+        # Draw tour edges with blue gradient
+        if tour_edges:
+            colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(tour_edges)))
+
+            for idx, edge in enumerate(tour_edges):
+                nx.draw_networkx_edges(
+                    G,
+                    pos,
+                    ax=self.ax,
+                    edgelist=[edge],
+                    edge_color=[colors[idx]],
+                    width=4,
+                    arrows=False
+                )
+
+        # Draw labels
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            ax=self.ax,
+            font_size=12,
+            font_weight='bold'
+        )
+
+        # Add edge weights as labels
+        edge_labels = {}
+        for i in range(self.graph.num_vertices):
+            for j in range(i + 1, self.graph.num_vertices):
+                if self.graph.adjacency_matrix[i][j] > 0:
+                    edge_labels[(i, j)] = str(self.graph.adjacency_matrix[i][j])
+
+        nx.draw_networkx_edge_labels(
+            G,
+            pos,
+            edge_labels,
+            ax=self.ax,
+            font_size=9,
+            font_color='#0066CC'
+        )
+
+        # Add TSP info to title
+        algo_str = self.tsp_result.algorithm_used
+        dist_str = f"Distance: {self.tsp_result.total_distance}"
+        approx_str = " (approximate)" if self.tsp_result.is_approximate else " (optimal)"
+        self.ax.set_title(
+            f"🚀 TSP Tour - {dist_str}{approx_str}",
+            fontsize=16,
+            fontweight='bold',
+            color='#0066CC',
+            pad=25
+        )
+        self.ax.set_facecolor(self.colors['bg_dark'])
+        self.fig.set_facecolor(self.colors['bg_card'])
+
+    def _draw_graph_with_hamiltonian(self, G: nx.Graph, pos: dict) -> None:
+        """
+        Draw graph with Hamiltonian path/circuit highlighted.
+
+        Args:
+            G (nx.Graph): NetworkX graph
+            pos (dict): Node positions
+        """
+        # Create edge list from Hamiltonian path
+        path_edges = []
+        if self.hamiltonian_result and self.hamiltonian_result.path:
+            for i in range(len(self.hamiltonian_result.path) - 1):
+                path_edges.append((self.hamiltonian_result.path[i], self.hamiltonian_result.path[i + 1]))
+
+            # Add return edge for circuit
+            if self.hamiltonian_result.has_circuit:
+                path_edges.append((self.hamiltonian_result.path[-1], self.hamiltonian_result.path[0]))
+
+        # All edges
+        all_edges = list(G.edges())
+
+        # Draw nodes
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            ax=self.ax,
+            node_color='#DDA0DD',  # Plum purple
+            node_size=800
+        )
+
+        # Draw non-path edges in light gray
+        non_path_edges = [edge for edge in all_edges if edge not in path_edges and (edge[1], edge[0]) not in path_edges]
+        if non_path_edges:
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                ax=self.ax,
+                edgelist=non_path_edges,
+                edge_color='lightgray',
+                width=1,
+                arrows=self.graph.directed,
+                arrowsize=15
+            )
+
+        # Draw path edges with purple gradient
+        if path_edges:
+            colors = plt.cm.Purples(np.linspace(0.4, 0.9, len(path_edges)))
+
+            for idx, edge in enumerate(path_edges):
+                nx.draw_networkx_edges(
+                    G,
+                    pos,
+                    ax=self.ax,
+                    edgelist=[edge],
+                    edge_color=[colors[idx]],
+                    width=4,
+                    arrows=self.graph.directed,
+                    arrowsize=20
+                )
+
+        # Draw labels
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            ax=self.ax,
+            font_size=12,
+            font_weight='bold'
+        )
+
+        # Add title
+        path_type = "Circuit" if self.hamiltonian_result.has_circuit else "Path"
+        self.ax.set_title(
+            f"🔮 Hamiltonian {path_type} Found!",
+            fontsize=16,
+            fontweight='bold',
+            color='#9370DB',
             pad=25
         )
         self.ax.set_facecolor(self.colors['bg_dark'])
